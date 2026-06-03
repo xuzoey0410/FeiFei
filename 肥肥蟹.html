@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天吃什么？</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* 转盘区域 */
+        .result-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 16px;
+            padding: 30px 20px;
+            margin-bottom: 25px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-emoji {
+            font-size: 48px;
+            margin-bottom: 8px;
+            transition: transform 0.3s;
+        }
+
+        .result-text {
+            font-size: 26px;
+            font-weight: bold;
+            color: white;
+            letter-spacing: 2px;
+        }
+
+        .result-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 6px;
+        }
+
+        /* 滚动动画 */
+        @keyframes spin {
+            0% { transform: translateY(-100%); opacity: 0; }
+            50% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .spinning .result-text {
+            animation: spin 0.1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .result-emoji.animate {
+            animation: bounce 0.4s ease;
+        }
+
+        /* 按钮 */
+        .spin-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 16px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            letter-spacing: 2px;
+            box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+        }
+
+        .spin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(102,126,234,0.5);
+        }
+
+        .spin-btn:active {
+            transform: translateY(0);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 分类标签 */
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .tag {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            color: #666;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .tag.active {
+            border-color: #667eea;
+            color: #667eea;
+            background: #f0f2ff;
+            font-weight: bold;
+        }
+
+        .tag:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        /* 历史记录 */
+        .history {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .history-title {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .history-item {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 4px 12px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* 加载动画 */
+        @keyframes rolling {
+            0% { content: "🎲"; }
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1s steps(3, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ 今天吃什么？</h1>
+        <p class="subtitle">选个分类，让命运决定你的胃！</p>
+
+        <!-- 分类标签 -->
+        <div class="category-tags">
+            <div class="tag active" data-category="all" onclick="selectCategory(this)">🌍 全部</div>
+            <div class="tag" data-category="chinese" onclick="selectCategory(this)">🥢 中餐</div>
+            <div class="tag" data-category="western" onclick="selectCategory(this)">🍴 西餐</div>
+            <div class="tag" data-category="japanese" onclick="selectCategory(this)">🍱 日韩料理</div>
+            <div class="tag" data-category="fastfood" onclick="selectCategory(this)">🍔 快餐</div>
+            <div class="tag" data-category="healthy" onclick="selectCategory(this)">🥗 轻食健康</div>
+        </div>
+
+        <!-- 结果展示 -->
+        <div class="result-box" id="resultBox">
+            <div class="result-emoji" id="resultEmoji">🎲</div>
+            <div class="result-text" id="resultText">点击按钮开始</div>
+            <div class="result-desc" id="resultDesc">让命运替你做决定</div>
+        </div>
+
+        <!-- 决定按钮 -->
+        <button class="spin-btn" id="spinBtn" onclick="spin()">
+            🎰 帮我决定！
+        </button>
+
+        <!-- 历史记录 -->
+        <div class="history" id="historySection" style="display:none">
+            <div class="history-title">📋 今日已选过：</div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        const foods = {
+            chinese: [
+                { name: "北京烤鸭", emoji: "🦆", desc: "皮脆肉嫩，经典不败" },
+                { name: "麻辣火锅", emoji: "🍲", desc: "辣到飞起，爽！" },
+                { name: "兰州拉面", emoji: "🍜", desc: "一清二白三红四绿" },
+                { name: "扬州炒饭", emoji: "🍳", desc: "粒粒分明，香气扑鼻" },
+                { name: "小笼包", emoji: "🥟", desc: "轻咬一口，汤汁四溢" },
+                { name: "宫保鸡丁", emoji: "🍗", desc: "酸甜微辣，下饭神器" },
+                { name: "红烧肉", emoji: "🥩", desc: "肥而不腻，入口即化" },
+                { name: "麻婆豆腐", emoji: "🌶️", desc: "麻辣鲜香，经典川菜" },
+                { name: "酸菜鱼", emoji: "🐟", desc: "酸爽开胃，嫩滑鲜美" },
+                { name: "蒸饺", emoji: "🥠", desc: "皮薄馅大，热腾腾的" },
+            ],
+            western: [
+                { name: "意大利面", emoji: "🍝", desc: "Al dente，完美口感" },
+                { name: "牛排", emoji: "🥩", desc: "几分熟，你说了算" },
+                { name: "披萨", emoji: "🍕", desc: "拉丝芝士，治愈一切" },
+                { name: "法式鹅肝", emoji: "🍴", desc: "入口即化，奢华享受" },
+                { name: "烤鸡腿", emoji: "🍗", desc: "外焦里嫩，香气逼人" },
+                { name: "奶油蘑菇汤", emoji: "🍵", desc: "浓郁香滑，暖胃暖心" },
+            ],
+            japanese: [
+                { name: "寿司", emoji: "🍣", desc: "新鲜食材，简单之美" },
+                { name: "拉面", emoji: "🍜", desc: "浓郁汤底，弹牙面条" },
+                { name: "烤肉", emoji: "🥓", desc: "自己烤，最香！" },
+                { name: "天妇罗", emoji: "🍤", desc: "酥脆外衣，鲜嫩内里" },
+                { name: "韩式炸鸡", emoji: "🍗", desc: "酥脆多汁，撸串必备" },
+                { name: "石锅拌饭", emoji: "🍚", desc: "滋滋作响，锅底最香" },
+                { name: "章鱼小丸子", emoji: "🐙", desc: "外酥内软，一口一个" },
+            ],
+            fastfood: [
+                { name: "汉堡", emoji: "🍔", desc: "大口咬下，满足感拉满" },
+                { name: "炸鸡", emoji: "🍗", desc: "香酥多汁，罪恶的快乐" },
+                { name: "薯条", emoji: "🍟", desc: "趁热吃，脆！" },
+                { name: "热狗", emoji: "🌭", desc: "简单美味，快速解决" },
+                { name: "炸鱿鱼圈", emoji: "🦑", desc: "咔嚓一口，太爽了" },
+                { name: "沙瓦玛", emoji: "🌯", desc: "包裹一切，方便又美味" },
+            ],
+            healthy: [
+                { name: "沙拉", emoji: "🥗", desc: "清爽低卡，今天要健康" },
+                { name: "三明治", emoji: "🥪", desc: "营养均衡，轻松搞定" },
+                { name: "鸡胸肉套餐", emoji: "🥦", desc: "健身人的最爱" },
+                { name: "蔬菜粥", emoji: "🫕", desc: "养胃暖心，清淡舒适" },
+                { name: "水果捞", emoji: "🍓", desc: "甜蜜健康，心情变好" },
+                { name: "日式便当", emoji: "🍱", desc: "营养搭配，精致生活" },
+            ]
+        };
+
+        let currentCategory = 'all';
+        let isSpinning = false;
+        let history = [];
+
+        function selectCategory(el) {
+            document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            currentCategory = el.dataset.category;
+        }
+
+        function getAllFoods() {
+            if (currentCategory === 'all') {
+                return Object.values(foods).flat();
+            }
+            return foods[currentCategory] || [];
+        }
+
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const btn = document.getElementById('spinBtn');
+            const resultText = document.getElementById('resultText');
+            const resultEmoji = document.getElementById('resultEmoji');
+            const resultDesc = document.getElementById('resultDesc');
+            const resultBox = document.getElementById('resultBox');
+
+            btn.disabled = true;
+            btn.textContent = '🎲 命运正在思考...';
+
+            const allFoods = getAllFoods();
+            let count = 0;
+            const maxCount = 15;
+
+            const interval = setInterval(() => {
+                const randomFood = allFoods[Math.floor(Math.random() * allFoods.length)];
+                resultEmoji.textContent = randomFood.emoji;
+                resultText.textContent = randomFood.name;
+                resultDesc.textContent = randomFood.desc;
+                count++;
+
+                if (count >= maxCount) {
+                    clearInterval(interval);
+
+                    // 最终结果
+                    const finalFood = allFoods[Math.floor(Math.random() * allFoods.length)];
+                    resultEmoji.textContent = finalFood.emoji;
+                    resultText.textContent = finalFood.name;
+                    resultDesc.textContent = finalFood.desc;
+
+                    // 动画
+                    resultEmoji.classList.add('animate');
+                    setTimeout(() => resultEmoji.classList.remove('animate'), 400);
+
+                    // 加入历史
+                    addHistory(finalFood.emoji + ' ' + finalFood.name);
+
+                    btn.disabled = false;
+                    btn.textContent = '🎰 再来一次！';
+                    isSpinning = false;
+                }
+            }, 80);
+        }
+
+        function addHistory(item) {
+            if (history.includes(item)) return;
+            history.unshift(item);
+            if (history.length > 5) history.pop();
+
+            const section = document.getElementById('historySection');
+            const list = document.getElementById('historyList');
+            section.style.display = 'block';
+            list.innerHTML = history.map(h =>
+                `<span class="history-item">${h}</span>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>
